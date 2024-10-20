@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
+<title>Living Graph</title>
+<LINK rel="stylesheet" href="plotcanvas.css" type="text/css">
+<script type="text/javascript" SRC="plotcanvas_compiled.js"></script>
+<script type="text/javascript">
+var p0 = new plotCanvas( {width:700, height:550, xoffset:150, yoffset:50, pltwidth:500, pltheight:400} );
+var R = 8.3145;
+var PI = 3.141593;
+var M = [];
+var T = [];
+var MAXPLOT = 5;
+var nextPlot = 0;
+var np = 0;
+var mDwn = false;
+var pc = ["#aa0000", "#0000aa", "#00aa00", "#ee00ee", "#00cccc", "#000000"];
+var mouseX = -1;
+var mouseY = -1;
+function doClear() {
+	mDwn=false;
+	p0.hideMsg();
+	p0.clearCanvasOvr();
+	nextPlot = 0;
+   	np = 0;
+   	doPlot();
+}
+function doRedraw() {
+	mDwn=false;
+	p0.hideMsg();
+	p0.clearCanvasOvr();
+   	if ( paramsOK () ) doPlot();
+}
+function newPlot() {
+	p0.hideMsg();
+	if ( paramsOK () ) {
+ 		M[nextPlot] = parseFloat(document.getElementById("i0").value);
+ 		T[nextPlot] = parseFloat(document.getElementById("i1").value);
+		nextPlot++;
+   		np++;
+	}
+  	if (np > MAXPLOT) np = MAXPLOT;
+   	if (nextPlot >= MAXPLOT) nextPlot = 0;
+	doPlot();
+}
+function doLegend() {
+	if (mDwn) {
+		p0.hideMsg();
+		mouseX = -1;
+		mouseY = -1;
+		mDwn = false;	
+		p0.clearCanvasOvr();
+	}
+	if (p0.onMsg()) {
+		p0.hideMsg();
+	} else {
+		var tmp = "<table width='350' style='margin-left:auto;margin-right:auto;'>";
+		if (np == 0) return;
+		for (var i = 0; i < np; i++ ) {
+			tmp = tmp + "<tr><td width='30' height='30'><span style='font-size:1.5em;color:" + pc[i] + ";'> &bull;</span></td><td width='90' height='30'><span style='color:" + pc[i] + ";'><i>M</i> = " + M[i] + "</span</td><td width='90' height='30'><span style='color:" + pc[i] + ";'><i>T</i> = " + T[i] + "</span></td></tr>";
+		}
+		tmp = tmp + "</table>";
+		p0.showMsg(tmp);
+	}
+}
+function doPlot() {
+	p0.clearCanvas();
+	p0.drawAxis();
+	p0.drawAxisLabels();
+	p0.xmin = parseFloat(document.getElementById("i4").value);
+	p0.xminLabel = "";
+	p0.xmax = parseFloat(document.getElementById("i5").value);
+	if (np > 0) {
+		p0.ymin = f(0, p0.xmin);					
+		p0.ymax = f(0, p0.xmin);
+		var xinc = (p0.xmax - p0.xmin) / (p0.n-1);
+		for (var i = 0; i < p0.n; i++) { p0.x[i] = p0.xmin + i*xinc; }
+	
+		for (var j=0; j < np; j++ ) {				
+			var z = 0;
+			for (var i = 0; i < p0.n; i++) {
+				z = f(j,p0.x[i]);
+				if (z < p0.ymin) p0.ymin = z;
+				if (z > p0.ymax) p0.ymax = z;
+			}
+		}
+
+		p0.autoYAxis(p0.ymin, p0.ymax);
+		p0.ymin = 0;
+		p0.yminLabel = "0";
+		//p0.autoXAxis(0, p0.xmax);
+		for (var j=0; j < np; j++ ) {
+			p0.lineColor = pc[j];
+			for (var i = 0; i < p0.n; i++) { p0.y[i] = f(j,p0.x[i]); }
+			p0.drawPlot();
+		}
+		if (p0.xmin == 0) p0.xminLabel = "0";
+		p0.drawAxisNumbers();
+	}
+}
+function f(j, x) {
+  	var k = 2000*R*T[j];
+  	return 4.0*PI * Math.pow( M[j]/(PI*k), 1.5) * x * x * Math.exp(-M[j]*x*x/k);  	
+}
+function paramsOK () {
+	var tmp = document.getElementById("i0").value;
+	if (isNaN(tmp)) {
+		showMsg(1,tmp); return false;
+	} else {
+		if (parseFloat(tmp)<=0) { showMsg(2,"<i>M</i>","zero"); return false; }
+	}
+	tmp = document.getElementById("i1").value;
+	if (isNaN(tmp)) {
+		showMsg(1,tmp); return false;
+	} else {
+		if (parseFloat(tmp)<=0) { showMsg(2,"<i>T</i>","zero"); return false; }
+	}
+	var lb,ub;
+	tmp = document.getElementById("i4").value;
+	if (isNaN(tmp)) {
+		showMsg(1,tmp); return false;
+	} else {
+		lb = parseFloat(tmp);
+		if (lb<0) { showMsg(2,"Speed (<i>&nu;</i>)", "zero"); return false; }
+	}
+	tmp = document.getElementById("i5").value;
+	if (isNaN(tmp)) {
+		showMsg(1,tmp); return false;
+	} else {
+		ub = parseFloat(tmp);
+		if (ub<0) { showMsg(2,"Speed (<i>&nu;</i>)", "zero"); return false; }
+	}
+	if (lb>=ub) { showMsg(3,"Speed (<i>&nu;</i>)"); return false; }
+	return true;
+}
+function showMsg(i,p,b) {
+	var t = "";
+	switch (i) {
+		case 0:
+			break;
+		case 1:
+			t="<img style='float:left;margin-right:20px;' src='"+imgdat[1]+"' width='30' height='30'><b>"+p+"</b> is not a number.<br /><br />";
+			break;
+		case 2:
+			t="<img style='float:left;margin-right:20px;' src='"+imgdat[1]+"' width='30' height='30'>"+p+" must be greater than "+b+".<br /><br />";
+			break;
+		case 3:
+			t="<img style='float:left;margin-right:20px;' src='"+imgdat[1]+"' width='30' height='30'>"+p+" upper bound must be greater than lower bound.<br /><br />";
+			break;			
+	}		
+	p0.showMsg(t);
+}
+function mouseCoords(ev){
+	if (ev.pageX || ev.pageY) { return {x:ev.pageX, y:ev.pageY}; }
+	return {
+		x:ev.clientX + document.body.scrollLeft - document.body.clientLeft,
+		y:ev.clientY + document.body.scrollTop  - document.body.clientTop
+	};
+}
+function mouseDown(ev) {
+	ev = ev || window.event;
+	var m = mouseCoords(ev);
+	var p = p0.divPos();
+	mouseX = m.x - p.x;
+	mouseY = m.y - p.y;
+	if (p0.inPlot(mouseX, mouseY) && np > 0 && !mDwn) {
+		mDwn = true;
+		p0.drawXVal(mouseX);
+		var x = p0.mapX(mouseX);
+		if (np == 0) return;
+		var yy = [];
+		for (var i = 0; i < 5;i++) yy[i] = f(i,x);
+		var tmp = "<table width='450' style='margin-left:auto;margin-right:auto;'><tr>";
+		tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[0] + ";'>"+round2sigfig(yy[0], p0.numSigFig, false)+"</span></td>";
+		if(np > 1)
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[1] + ";'>"+round2sigfig(yy[1], p0.numSigFig, false)+"</span></td>";
+		else
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[1] + ";'>&mdash;</span></td>";
+		if(np > 2)
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[2] + ";'>"+round2sigfig(yy[2], p0.numSigFig, false)+"</span></td>";
+		else
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[2] + ";'>&mdash;</span></td>";
+		if(np > 3)
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[3] + ";'>"+round2sigfig(yy[3], p0.numSigFig, false)+"</span></td>";
+		else
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[3] + ";'>&mdash;</span></td>";
+
+		if(np > 4)
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[4] + ";'>"+round2sigfig(yy[4], p0.numSigFig, false)+"</span></td>";
+		else
+			tmp += "<td style='width:90px;height:30px'><span style='color:" + pc[4] + ";'>&mdash;</span></td>";
+
+		tmp += "</tr></table>";
+		p0.showMsg(tmp);
+	} else if (mDwn) {
+		p0.hideMsg();
+		mouseX = -1;
+		mouseY = -1;
+		mDwn = false;	
+		p0.clearCanvasOvr();
+	}
+	return false;
+}
+function doInit() {
+	p0.yLabel = "Fraction, <i>f</i>(<i>&nu;</i>)/(m<sup>-1</sup>&middot;s)";
+	p0.xLabel = "Speed, <i>&nu;</i>/(m&middot;s<sup>-1</sup>)";
+	p0.dSymbol = p0.NONE;
+	p0.connectPts = true;
+	p0.showGrid = true;
+	p0.yLabelVertical = true;
+	p0.gridColor = "#6dbb45";
+	p0.xmin = 0;
+	p0.xmax = 1.0;
+	p0.ymin = 0;
+	p0.ymax = 1.0;
+	p0.n = 500;
+	p0.initCanvas('p0');
+	document.getElementById(p0.ovrId).onclick = mouseDown;
+	doPlot();
+}
+</script>
+</head>
+<body onload="doInit();">
+<p style="text-align:center"><b>Fig 3D.6 & 3D.7 - Maxwell-Boltzmann Distribution</b></p>
+<p>The distribution of molecular speeds depends on temperature and the molar mass of the molecules. Note that
+the most probable speed (corresponding to the peak of the distribution) increases with temperature and with 
+decreasing molar mass and, simultaneously, the distribution becomes broader. The formula is</p>
+<p style="text-align:center"><img src="maxwell_boltzmann.png"></p>
+<p>Where <i>&nu;</i> is the speed (m&middot;s<sup>-1</sup>), <i>M</i> is the molar mass (g&middot;mol<sup>-1</sup>), <i>T</i> is the temperature (kelvin), and <i>R</i> is the gas constant.</p>
+<P>To graph a distribution enter <i>M</i> and <i>T</i> and click <b>New Plot</b>. Up to 5 plots can be 
+displayed at one time. The <b>Clear</b> button will remove all plots. To see the parameters for each plot click the 
+<b>Legend</b> button. The <b>Redraw</b> button will refresh the graph. This is useful when the function 
+domain (i.e., <i>&nu;</i> ) has been changed. To see the value of each plot at a given point, move your cursor to the desired location then click.</p>
+<br /><br />
+<div style="text-align:center;font-size:16px;font-family:Verdana,Arial,Helvetica,Sans-Serif;font-weight:normal;">
+&nbsp;&nbsp;&nbsp;&nbsp;<i>M</i> = <input id="i0" type="text" size=8 value="50" />&nbsp;g&middot;mol<sup>-1</sup>
+&nbsp;&nbsp;&nbsp;&nbsp;<i>T</i> = <input id="i1" type="text" size=8 value="100.0" />&nbsp;K
+&nbsp;&nbsp;&nbsp;&nbsp;<i>&nu;</i> = <input id="i4" type="text" size=6 value="0" />
+&nbsp;&nbsp;to&nbsp;&nbsp;<input id="i5" type="text" size=6 value="600" />&nbsp;m&middot;s<sup>-1</sup>
+</div>
+<br />
+<div style="text-align:center;">
+<button type="button" onclick="newPlot();">New Plot</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" onclick="doClear();">Clear</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" onclick="doRedraw();">Redraw</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" onclick="doLegend();">Legend</button>
+</div>
+<div id="p0div" class="plotcanvas"></div>
+</body>
+</html>
